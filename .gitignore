@@ -4,3 +4,10 @@
 .DS_Store
 insight_testsuite/results.txt
 insight_testsuite/temp
+
+# Virtualenv
+.python
+bin
+include
+lib
+share
