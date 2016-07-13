@@ -11,3 +11,8 @@ bin
 include
 lib
 share
+build
+
+# intermediate files
+venmo_output
+venmo_input
