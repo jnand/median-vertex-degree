@@ -185,7 +185,7 @@ This solution is obviously limited by the performance and feature set of python'
 
 #### Vertical "Implementation"
 
-Ideally, an optimized solution would implement its cache by linking hash keys to cache buckets by weak-reference, while also keeping a fixed length array, mapping time based `delta` indexes to the window buckets. Then the window can be rotated/truncated while a garbage collection callback triggers the clean up of any orphaned references on eviction -- eliminating the need for manual bookkeeping between the rotating-map and the edge-store, and improving memory efficiency. This small implementation change would improve eviction performance from *O(n)* to *O(m)*, where `n` is the total number of edges in the cache, and `m` is the number of edge being evicted.
+Ideally, an optimized solution would implement its cache by linking hash keys to cache buckets by weak-reference, while also keeping a fixed length array mapping time based `delta` indexes to the window buckets. Then resulting "window array" can be rotated/truncated while a garbage collection callback triggers the clean up of any orphaned references on eviction -- eliminating the need for manual bookkeeping between the rotating-map and the edge-store, and improving memory efficiency. This small implementation change would improve eviction performance from *O(n)* to *O(m)*, where `n` is the total number of edges in the cache, and `m` is the number of edges being evicted.
 
 #### Horizontal "Distribution"
 
@@ -195,11 +195,11 @@ Each step of the pipeline is analogous to existing distributed patterns, making 
 
 **Ingestion**, is mocked as a read-file stream, but can replaced with a message broker.
 
-**Mapping**, json input is parsed into tuples, and can be distributed horizontally round-robin style in sequence-preserving batches. All receivers would buffer their input batches simultaneously, and the results would be output in sequence.
+**Mapping**, json input is parsed into tuples, and can be distributed horizontally round-robin style, in sequence-preserving batches. All receivers would buffer their input batches simultaneously, and the results would be output in sequence.
 
 **Edge-Reducer**, the RotatingMap based LRU cache can be scaled horizontally by partitioning across `delta` time-buckets. Additionally, each bucket can be further distributed by partitioning on edge-keys. The mock implementation here outputs a "diff stream" of tuples with only the necessary data to update the receiver.
 
-**Node-Reducer**, a HashMap that can be scaled out by partitioning on the node key, reducing them into degree counts. Tuples are collected into a b-tree which maintains a persistent sort. The mock `blist` here can be replaced with a distributed structure like a skiplist.
+**Node-Reducer**, a HashMap that can be scaled out by partitioning on the node key, reducing them into degree counts. Tuples are collected into a b+tree which maintains a persistent sort. The mock `blist` here can be replaced with a distributed structure like a skiplist.
 
 **Collection**, can be scaled by a receiving message queue.
 
