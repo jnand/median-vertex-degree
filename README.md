@@ -59,7 +59,7 @@ I recommended isolating the install in a vm, container, or virtualenv.
 
 ![Schematic](images/schematic.png)
 
-This solution applies a **MapReduce** pattern to a linear-flow topology. Data is **ingested** from a file simulating a real-time stream. The input is then **mapped** into a tuple representation of transaction-edges belonging to the payment graph. Output from the mapping step is fed into an "**edge-reducer**" which maintains a **rolling hash-map** functioning as a **least-recently-used cache**. On each transaction event the cache step ensures data is only live within a lagging 60s window. "Live" edges are then passed to the **node-reducer** which computes the degree of each node. The node-reducer maintains a sorted distribution of node degrees, while **emitting** a median value to the **collector** endpoint for each edge.
+This solution applies a **MapReduce** pattern to a linear-flow topology. Data is **ingested** from a file simulating a real-time stream. The input is then **mapped** into a tuple representation of transaction-edges belonging to the payment graph. Output from the mapping step is fed into an "**edge-reducer**" which maintains a **rolling hash-map** functioning as a **least-recently-used cache**. On each transaction event the cache step ensures data is only live within a lagging 60s window. "Live" edges are then passed to the **node-reducer** which computes the degree of each node. The node-reducer maintains a sorted distribution of node degrees, while **emitting** a median value to the **collector** endpoint for each edge processed.
 
 
 ### Directory structure
