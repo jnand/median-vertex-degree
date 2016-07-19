@@ -17,7 +17,7 @@ Code Challenge - Rolling Median Vertex Degree
 6. [Trade Offs and Future Improvement](README.md#trade-offs-and-future-improvement)  
 6.1 [Scaling](README.md#scaling)  
 6.1.1 [Verical](README.md#vertical-implementation)  
-6.1.1 [Horizontal](README.md#horizontal-distribution)  
+6.1.2 [Horizontal](README.md#horizontal-distribution)  
 
 
 
@@ -185,7 +185,7 @@ This solution is obviously limited by the performance and feature set of python'
 
 #### Vertical "Implementation"
 
-Ideally, an optimized solution would implement its cache by linking hash keys to cache buckets by weak-reference, while also keeping a fixed length array mapping time based `delta` indexes to the window buckets. Then resulting "window array" can be rotated/truncated while a garbage collection callback triggers the clean up of any orphaned references on eviction -- eliminating the need for manual bookkeeping between the rotating-map and the edge-store, and improving memory efficiency. This small implementation change would improve eviction performance from *O(n)* to *O(m)*, where `n` is the total number of edges in the cache, and `m` is the number of edges being evicted.
+Ideally, an optimized solution would implement its cache by linking hash keys to cache buckets by weak-reference, while also keeping a fixed length array for mapping time based `delta` indexes to the cache buckets. The resulting "array window" can be rotated or truncated as neccessary. A garbage collection callback triggers the clean up of any orphaned references on eviction -- eliminating the need for manual bookkeeping between the rotating-map and the edge-store, and improving memory efficiency. This small implementation change would improve eviction performance from *O(n)* to *O(m)*, where `n` is the total number of edges in the cache, and `m` is the number of edges being evicted.
 
 #### Horizontal "Distribution"
 
