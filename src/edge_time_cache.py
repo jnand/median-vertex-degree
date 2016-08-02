@@ -12,7 +12,6 @@ records behind the window do nothing (emitting an empty "diff list").
 """
 
 import logging as log
-from blist import blist
 from itertools import chain
 from collections import defaultdict
 
@@ -27,7 +26,7 @@ class Cache(object):
     def __init__(self, size=60, **kwargs):
         self._lower_bound = 0 #time-stamp
         self._size = size       
-        self._rolling_window = blist([set() for i in xrange(size)])
+        self._rolling_window = list([set() for i in xrange(size)])
         self._edges = {} # key: int bucket_number
 
 
