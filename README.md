@@ -12,12 +12,12 @@ Code Challenge - Rolling Median Vertex Degree
 3.3.1 [Rolling Window Cache](README.md#rolling-window-cache)  
 3.3.2 [Ensuring unique edges](README.md#ensuring-unique-edges-within-the-window)  
 3.3.3 [Dealing with edges out-of-sequence](README.md#dealing-with-edges-which-arrive-out-of-sequence)  
-4. [Solution test suite](README.md#solution-test-suite)
-5. [Benchmarks](README.md#benchmarks)
-6. [Trade Offs and Future Improvement](README.md#trade-offs-and-future-improvement)
+4. [Solution test suite](README.md#solution-test-suite)  
+5. [Benchmarks](README.md#benchmarks)  
+6. [Trade Offs and Future Improvement](README.md#trade-offs-and-future-improvement)  
 6.1 [Scaling](README.md#scaling)  
 6.1.1 [Verical](README.md#vertical-implementation)  
-6.1.1 [Horizontal](README.md#horizontal-distribution)  
+6.1.2 [Horizontal](README.md#horizontal-distribution)  
 
 
 
@@ -59,7 +59,7 @@ I recommended isolating the install in a vm, container, or virtualenv.
 
 ![Schematic](images/schematic.png)
 
-This solution applies a **MapReduce** pattern to a linear-flow topology. Data is **ingested** from a file simulating a real-time stream. The input is then **mapped** into a tuple representation of transaction-edges belonging to the payment graph. Output from the mapping step is fed into an "**edge-reducer**" which maintains a **rolling hash-map** functioning as a **least-recently-used cache**. On each transaction event the cache step ensures data is only live within a lagging 60s window. "Live" edges are then passed to the **node-reducer** which computes the degree of each node. The node-reducer maintains a sorted distribution of node degrees, while **emitting** a median value to the **collector** endpoint for each edge.
+This solution applies a **MapReduce** pattern to a linear-flow topology. Data is **ingested** from a file simulating a real-time stream. The input is then **mapped** into a tuple representation of transaction-edges belonging to the payment graph. Output from the mapping step is fed into an "**edge-reducer**" which maintains a **rolling hash-map** functioning as a **least-recently-used cache**. On each transaction event the cache step ensures data is only live within a lagging 60s window. "Live" edges are then passed to the **node-reducer** which computes the degree of each node. The node-reducer maintains a sorted distribution of node degrees, while **emitting** a median value to the **collector** endpoint for each edge processed.
 
 
 ### Directory structure
@@ -185,7 +185,7 @@ This solution is obviously limited by the performance and feature set of python'
 
 #### Vertical "Implementation"
 
-Ideally, an optimized solution would implement its cache by linking hash keys to cache buckets by weak-reference, while also keeping a fixed length array, mapping time based `delta` indexes to the window buckets. Then the window can be rotated/truncated while a garbage collection callback triggers the clean up of any orphaned references on eviction -- eliminating the need for manual bookkeeping between the rotating-map and the edge-store, and improving memory efficiency. This small implementation change would improve eviction performance from *O(n)* to *O(m)*, where `n` is the total number of edges in the cache, and `m` is the number of edge being evicted.
+Ideally, an optimized solution would implement its cache by linking hash keys to cache buckets by weak-reference, while also keeping a fixed length array for mapping time based `delta` indexes to the cache buckets. The resulting "array window" can be rotated or truncated as neccessary. A garbage collection callback triggers the clean up of any orphaned references on eviction -- eliminating the need for manual bookkeeping between the rotating-map and the edge-store, and improving memory efficiency. This small implementation change would improve eviction performance from *O(n)* to *O(m)*, where `n` is the total number of edges in the cache, and `m` is the number of edges being evicted.
 
 #### Horizontal "Distribution"
 
@@ -195,11 +195,11 @@ Each step of the pipeline is analogous to existing distributed patterns, making 
 
 **Ingestion**, is mocked as a read-file stream, but can replaced with a message broker.
 
-**Mapping**, json input is parsed into tuples, and can be distributed horizontally round-robin style in sequence-preserving batches. All receivers would buffer their input batches simultaneously, and the results would be output in sequence.
+**Mapping**, json input is parsed into tuples, and can be distributed horizontally round-robin style, in sequence-preserving batches. All receivers would buffer their input batches simultaneously, and the results would be output in sequence.
 
 **Edge-Reducer**, the RotatingMap based LRU cache can be scaled horizontally by partitioning across `delta` time-buckets. Additionally, each bucket can be further distributed by partitioning on edge-keys. The mock implementation here outputs a "diff stream" of tuples with only the necessary data to update the receiver.
 
-**Node-Reducer**, a HashMap that can be scaled out by partitioning on the node key, reducing them into degree counts. Tuples are collected into a b-tree which maintains a persistent sort. The mock `blist` here can be replaced with a distributed structure like a skiplist.
+**Node-Reducer**, a HashMap that can be scaled out by partitioning on the node key, reducing them into degree counts. Tuples are collected into a b+tree which maintains a persistent sort. The mock `blist` here can be replaced with a distributed structure like a skiplist.
 
 **Collection**, can be scaled by a receiving message queue.
 
