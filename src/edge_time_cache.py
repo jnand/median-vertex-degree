@@ -93,13 +93,13 @@ class Cache(object):
         if delta >= 0:
             # New, ahead of window, trigger cache eviction
             if delta >= self.size:                 
-                evicted = self.evict_expired(delta)
                 self.update_lower_bound(timestamp)
+                evicted = self.evict_expired(delta)                
                 delta   = self.delta(timestamp)                
                 diff.update(evicted)
             
             # Current, add edge to cache
-            new  = self.observe_edge(delta, key)
+            new  = self.observe_edge(delta, key, timestamp)
             diff = self.dict_sum(diff, new)
 
         # Old, behind window, delta < 0, Do nothing
@@ -117,39 +117,33 @@ class Cache(object):
 
     def evict_expired(self, delta):
         """Handles the removal of stale edges and bookkeeping operations of related structures."""
+        
         index = delta - self.size + 1        
         truncated = self.truncate(index)        
         flattened = list(chain.from_iterable(truncated))
-        #debug# evicted = {x: -1 * flattened.count(x) for x in flattened}
-        evicted = {x: -1 for x in flattened}
         
-        # shift edge-store bucket mappings
-        # this can be improved by weak-referencing the buckets
-        for edge in self.edges.keys():
-            if evicted.has_key(edge):
+        evicted = {}
+        for edge in flattened:
+            # only evict edges from cache that are behind the new lower_bound
+            if self.edges.has_key(edge) and (self.edges[edge] < self.lower_bound):
+                evicted[edge] = -1
                 del self.edges[edge]
-            else:
-                self.edges[edge] -= index
 
         log.debug("evicted: %s" % evicted)
         log.debug("truncated: %s" % self.cache)
         return evicted
 
-
-    def move(self,key,index):
-        """Move a key from an older bucket to newer one."""
-        if index > self.edges[key]: #and (index >= self.edges[key]):
-            self.cache[self.edges[key]].discard(key)
-            self.cache[index].add(key)
-            self.edges[key] = index
         
-
-    def observe_edge(self, index, key):
+    def observe_edge(self, bucket, key, timestamp):
         """Apply operations to incoming edge."""
+        obs = {}
         if self.edges.has_key(key):
-            self.move(key, index)
-            return {}
-        else:
-            self.cache[index].add(key)
-            self.edges[key] = index
-            return {key: 1}
+            if timestamp > self.edges[key]:
+                self.edges[key] = timestamp            
+        else:            
+            self.edges[key] = timestamp
+            obs = {key: 1}
+
+        self.cache[bucket].add(key)
+        return obs
+
