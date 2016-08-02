@@ -54,10 +54,10 @@ def main(args):
             # Map, raw to tuple/edge representation 
             edge = json_to_edge(raw)
 
-            # Partition, updates by cache bucket
+            # 1st Reduce, updates by cache bucket
             diff = lru_edge_cache.update(edge)          
 
-            # Reduce, updates into one value per input event
+            # 2nd Reduce, updates into one value per input event
             result = reduce_node_deg.update(diff)
             
             # Collect, output  
